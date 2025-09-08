@@ -1,5 +1,7 @@
 import { User } from '@/types';
 import { logger } from './logger';
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export const validateLoginInput = (input: string): { status: boolean; message: string | null } => {
 	logger.log('validating input');
@@ -27,10 +29,10 @@ export const getCurrentUser = (): User | null => {
 
 	try {
 		const user = localStorage.getItem('current_user');
-		if (user) return JSON.parse(user) as User;
+		if (!user) return null;
+		return JSON.parse(user) as User;
 	} catch (err) {
 		logger.error('Failed to get current user from localStorage', err);
-	} finally {
 		return null;
 	}
 };
@@ -43,3 +45,7 @@ export const removeCurrentUser = (): void => {
 		logger.error('Failed to remove current user from localStorage', err);
 	}
 };
+
+export function cn(...inputs: ClassValue[]) {
+	return twMerge(clsx(inputs));
+}

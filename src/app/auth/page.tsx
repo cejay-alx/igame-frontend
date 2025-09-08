@@ -17,6 +17,7 @@ const Auth = () => {
 	const login = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setSubmitting(true);
+		setError('');
 		try {
 			logger.log(`Submitting login form`);
 			const username = inputRef.current?.value ?? '';
@@ -36,7 +37,7 @@ const Auth = () => {
 				if (response.ok && data.user) {
 					nProgress.start();
 					setCurrentUser(data.user);
-					router.push('/game');
+					router.replace('/home');
 				} else {
 					setError(data.error || 'Login failed');
 					logger.error(`Login failed: ${data.error || 'Unknown error'}`);
@@ -62,7 +63,7 @@ const Auth = () => {
 						</div>
 					)}
 					<input type="text" className={`border ${submitting ? 'bg-gray-400 cursor-not-allowed' : ''}`} ref={inputRef} disabled={submitting} />
-					<button type="submit" className="cursor-pointer p-2 bg-blue-600 rounded-4xl" disabled={submitting}>
+					<button type="submit" className={`cursor-pointer p-2 bg-blue-600 rounded-4xl ${submitting && 'opacity-50'}`} disabled={submitting}>
 						{submitting ? 'Logging in...' : 'Login'}
 					</button>
 				</form>

@@ -11,15 +11,16 @@ interface VerifyResult {
 
 export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
-	const authToken = request.cookies.get('access_token')?.value;
+	const authToken = request.cookies.get('igame_access_token')?.value;
 
-	const gameUrl = new URL('/game', request.url);
+	const homeUrl = new URL('/home', request.url);
 	const authUrl = new URL('/auth', request.url);
 
+	const isHomePath = pathname.startsWith('/home');
 	const isGamePath = pathname.startsWith('/game');
 	const isAuthPath = pathname.startsWith('/auth');
 
-	if (isGamePath) {
+	if (isHomePath || isGamePath) {
 		if (!authToken) return redirect(authUrl, pathname, authToken);
 
 		const { user, error } = await verifyUser(authToken);
@@ -49,11 +50,11 @@ export async function middleware(request: NextRequest) {
 			if (targetPath) {
 				return NextResponse.redirect(new URL(targetPath, request.nextUrl.origin));
 			} else {
-				return NextResponse.redirect(new URL(gameUrl, request.nextUrl.origin));
+				return NextResponse.redirect(new URL(homeUrl, request.nextUrl.origin));
 			}
 		}
 
-		return NextResponse.next().cookies.delete('access_token');
+		return NextResponse.next().cookies.delete('igame_access_token');
 	}
 
 	return NextResponse.next();
@@ -73,7 +74,7 @@ async function verifyUser(token: string): Promise<VerifyResult> {
 	}
 
 	const headers = new Headers();
-	headers.append('Cookie', `access_token=${token}`);
+	headers.append('Cookie', `igame_access_token=${token}`);
 
 	try {
 		const request = await fetchWithAuth(`${apiUrl}/auth/verify`, {
@@ -96,10 +97,10 @@ async function verifyUser(token: string): Promise<VerifyResult> {
 async function redirect(authUrl: URL, pathname: string, token: string | undefined) {
 	authUrl.searchParams.set('redirect_to', pathname);
 	const redirect = NextResponse.redirect(authUrl);
-	if (token) redirect.cookies.delete('access_token');
+	if (token) redirect.cookies.delete('igame_access_token');
 	return redirect;
 }
 
 export const config = {
-	matcher: ['/auth/:path*', '/game/:path*'],
+	matcher: ['/auth/:path*', '/home/:path*', '/game/:path*'],
 };
