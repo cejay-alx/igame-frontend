@@ -3,11 +3,13 @@
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { cn, getCurrentUser, removeCurrentUser } from '@/lib/helpers';
 import { logger } from '@/lib/logger';
-import { GameSession, GameSessionsResponse, User } from '@/types';
+import { GameSession, GameSessionsResponse, SessionParticipant, User } from '@/types';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
-import nProgress from 'nprogress';
+import nProgress, { set } from 'nprogress';
 import { useEffect, useLayoutEffect, useState } from 'react';
+import SelectNumber from './SelectNumber';
+import Default from './Default';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -19,6 +21,9 @@ const Game = () => {
 	const [countdown, setCountdown] = useState<number | null>(null);
 	const [searchignNewGame, setSearchignNewGame] = useState(true);
 	const [currentSession, setCurrentSession] = useState<GameSession | null>(null);
+	const [count, setCount] = useState<number | null>(null);
+	const [participant, setParticipant] = useState<SessionParticipant | null>(null);
+	const [inGame, setInGame] = useState<boolean>(false);
 	const [activeSession, setActiveSession] = useState<boolean>(false);
 
 	const logoutUser = async () => {
@@ -54,6 +59,13 @@ const Game = () => {
 			logger.log('Fetched active games', response);
 			if (request.ok && response.game) {
 				setCurrentSession(response.game);
+				setCount(response.count || null);
+				if (response.participant) {
+					setParticipant(response.participant);
+					if (response.participant.chosen_number) {
+						setInGame(true);
+					}
+				}
 			}
 		} catch (err) {
 		} finally {
@@ -98,6 +110,10 @@ const Game = () => {
 		getActiveGames();
 	}, []);
 
+	useEffect(() => {
+		handleNewSession(currentSession);
+	}, [currentSession]);
+
 	return (
 		<div className="flex h-screen w-screen bg-gray-200">
 			{searchignNewGame ? (
@@ -105,26 +121,9 @@ const Game = () => {
 					<h1 className="text-xl font-bold mb-4">Loading...</h1>
 				</main>
 			) : !activeSession ? (
-				<main className="flex-grow flex flex-col justify-center items-center">
-					<h1 className="text-xl font-bold mb-4">No Active Session</h1>
-					<div className="flex flex-col gap-4 mt-8 items-center">
-						<button className={cn(`cursor-pointer text-white bg-black p-5 px-20 `)} onClick={() => {}}>
-							Start New Session
-						</button>
-						{countdown && <span className="text-red-500">There is an active session, you can join in {countdown}s</span>}
-						<span
-							onClick={() => {
-								nProgress.start();
-								router.push('/home');
-							}}
-							className="cursor-pointer"
-						>
-							{'<	Go Back'}
-						</span>
-					</div>
-				</main>
+				<Default />
 			) : (
-				<main></main>
+				<SelectNumber countdown={countdown} game={currentSession} inGame={inGame} setInGame={setInGame} count={count} participant={participant} />
 			)}
 		</div>
 	);

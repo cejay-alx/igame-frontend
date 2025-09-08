@@ -21,6 +21,7 @@ const Home = () => {
 	const [startingSession, setStartingSession] = useState(false);
 	const [currentSession, setCurrentSession] = useState<GameSession | null>(null);
 	const [activeSession, setActiveSession] = useState<boolean>(false);
+	const [joiningSession, setJoiningSession] = useState<boolean>(false);
 	const [countdown, setCountdown] = useState<number | null>(null);
 	const [error, setError] = useState('');
 
@@ -52,24 +53,52 @@ const Home = () => {
 	};
 
 	const handleNewGame = async () => {
-		setStartingSession(true);
 		setError('');
-		try {
-			const request = await fetchWithAuth('api/games/new-game', { method: 'POST' });
-			const response = (await request.json()) as GameSessionsResponse;
+		if (!currentSession) {
+			setStartingSession(true);
+			try {
+				const request = await fetchWithAuth('api/games/new-game', { method: 'POST' });
+				const response = (await request.json()) as GameSessionsResponse;
 
-			if (request.ok && response.game) {
-				nProgress.start();
-				router.push('/game');
-			} else {
-				logger.error('Failed to start new game session', response);
-				setError(response.error || 'Failed to start new game session');
+				if (request.ok && response.game) {
+					nProgress.start();
+					router.push('/game');
+				} else {
+					logger.error('Failed to start new game session', response);
+					setError(response.error || 'Failed to start new game session');
+					setStartingSession(false);
+				}
+			} catch (err) {
+				logger.error('Error while starting new game session', err);
+				setError('Error while starting new game session');
 				setStartingSession(false);
 			}
-		} catch (err) {
-			logger.error('Error while starting new game session', err);
-			setError('Error while starting new game session');
-			setStartingSession(false);
+		} else {
+			setJoiningSession(true);
+			try {
+				const request = await fetchWithAuth('api/games/join-game', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ game_id: currentSession.id }),
+				});
+
+				const response = (await request.json()) as GameSessionsResponse;
+
+				if (request.ok && response.game) {
+					nProgress.start();
+					router.push('/game');
+				} else {
+					logger.error(`Failed to join the session`, response);
+					setError(response.error || 'Failed to join the session, please try again later');
+					setJoiningSession(false);
+				}
+			} catch (error: any) {
+				logger.error(`Error while joining the session`, error);
+				setError('An error occurred while joining the session, please try again later');
+				setJoiningSession(false);
+			}
 		}
 	};
 
@@ -190,7 +219,7 @@ const Home = () => {
 
 					<main className="flex-grow flex flex-col justify-center items-center">
 						{error && (
-							<div className="p-2 bg-red-400 text-white rounded-sm">
+							<div className="p-2 bg-red-400 text-white rounded-sm mb-4">
 								<p>{error}</p>
 							</div>
 						)}
@@ -203,8 +232,8 @@ const Home = () => {
 						</h2>
 
 						<div className="flex flex-col gap-4 mt-8 items-center">
-							<button type="button" className={cn(`cursor-pointer text-white bg-black p-5 px-20 ${(searchignNewGame || startingSession) && 'opacity-50'}`)} onClick={handleNewGame} disabled={searchignNewGame || startingSession}>
-								{searchignNewGame ? 'Loading...' : activeSession ? 'Join' : startingSession ? 'Starting Session...' : 'Start Session'}
+							<button type="button" className={cn(`cursor-pointer text-white bg-black p-5 px-20 ${(searchignNewGame || startingSession || joiningSession) && 'opacity-50'}`)} onClick={handleNewGame} disabled={searchignNewGame || startingSession}>
+								{searchignNewGame ? 'Loading...' : activeSession ? (joiningSession ? 'Joining...' : 'Join') : startingSession ? 'Starting Session...' : 'Start Session'}
 							</button>
 							{activeSession == true && countdown && <span className="text-red-500">There is an active session, you can join in {countdown}s</span>}
 						</div>

@@ -25,5 +25,18 @@ export interface GameSession {
 
 export interface GameSessionsResponse {
 	game?: GameSession | null;
+	count?: number | null;
+	participant?: SessionParticipant | null;
 	error?: string | null;
+}
+
+export interface SessionParticipant {
+	id: string;
+	session_id: string;
+	user_id: string;
+	chosen_number: number;
+	is_winner: boolean;
+	joined_at: string;
+	is_starter: boolean;
+	updated_at: string;
 }
