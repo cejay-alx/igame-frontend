@@ -49,3 +49,12 @@ export const removeCurrentUser = (): void => {
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
+
+export const handleFetchError = (response: any, request: any) => {
+	if (response.error && response.error === 'Not authorized, Invalid token in cookie' && (request.status === 401 || request.status === 403)) {
+		logger.error('Unauthorized access - redirecting to login');
+		if (typeof window !== 'undefined') {
+			window.location.href = '/auth';
+		}
+	}
+};

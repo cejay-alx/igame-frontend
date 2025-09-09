@@ -30,6 +30,13 @@ export interface GameSessionsResponse {
 	error?: string | null;
 }
 
+export interface EndGameSessionsResponse {
+	game?: GameSession | null;
+	count?: number | null;
+	participants?: SessionParticipant[] | null;
+	error?: string | null;
+}
+
 export interface SessionParticipant {
 	id: string;
 	session_id: string;
@@ -39,4 +46,9 @@ export interface SessionParticipant {
 	joined_at: string;
 	is_starter: boolean;
 	updated_at: string;
+	user: {
+		total_wins?: number;
+		total_losses?: number;
+		username?: string;
+	} | null;
 }

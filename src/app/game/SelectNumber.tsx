@@ -4,7 +4,7 @@ import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { cn } from '@/lib/helpers';
 import { GameSession, GameSessionsResponse, SessionParticipant } from '@/types';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface SelectNumberProps {
 	countdown: number | null;
@@ -13,14 +13,16 @@ interface SelectNumberProps {
 	count?: number | null;
 	participant?: SessionParticipant | null;
 	game?: GameSession | null;
+	endingGame: boolean;
 }
 
-const SelectNumber = ({ countdown, setInGame, inGame, count, participant, game }: SelectNumberProps) => {
+const SelectNumber = ({ countdown, setInGame, inGame, count, participant, game, endingGame }: SelectNumberProps) => {
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
 	const [submitting, setSubmitting] = useState(false);
 	const [leaving, setLeaving] = useState(false);
+	const [luckyNumber, setLuckyNumber] = useState<number | null>(null);
 
 	const router = useRouter();
 
@@ -45,15 +47,16 @@ const SelectNumber = ({ countdown, setInGame, inGame, count, participant, game }
 			const response = (await request.json()) as GameSessionsResponse;
 
 			if (!request.ok) {
-				setError(response.error || 'Failed to submit number');
+				setError(response.error || 'Failed to select number');
 			}
 
 			if (request.ok && response.game) {
+				setLuckyNumber(Number(value));
 				setInGame(true);
-				setSuccess('Your lucky number was submitted successfully');
+				setSuccess('Your lucky number was selected successfully');
 			}
 		} catch (err: any) {
-			setError(err.message || 'Failed to submit number');
+			setError(err.message || 'Failed to select number');
 		} finally {
 			setSubmitting(false);
 		}
@@ -87,38 +90,45 @@ const SelectNumber = ({ countdown, setInGame, inGame, count, participant, game }
 		}
 	};
 
+	useEffect(() => {
+		if (participant?.chosen_number) {
+			setLuckyNumber(participant?.chosen_number);
+		}
+	}, []);
+
 	return (
 		<div className="flex flex-col flex-grow h-screen w-screen">
 			<nav className="self-end flex gap-4 items-center">
 				<div className="flex items-center justify-center flex-col m-4">
 					<h2 className="font-semibold text-xl">Countdown Timer</h2>
-					<span className="font-semibold text-4xl">{countdown}</span>
+					<span className="font-semibold text-4xl">{countdown || 'Game Ended'}</span>
 				</div>
 			</nav>
 
 			<main className="flex-grow flex flex-col justify-center items-center">
-				{error && (
+				{!endingGame && error && (
 					<div className="p-2 px-4 bg-red-400 text-white rounded-sm mb-10">
 						<p>{error}</p>
 					</div>
 				)}
 
-				{success && (
+				{!endingGame && success && (
 					<div className="p-2 px-4 bg-green-400 text-white rounded-sm mb-10">
 						<p>{success}</p>
 					</div>
 				)}
 
-				<h3 className="font-semibold text-xl mb-2">Pick a number from 1-9</h3>
-				{!inGame ? <input type="number" max={9} min={1} ref={inputRef} className="p-5 w-3xl bg-white" /> : <h5 className="text-lg font-bold">You have already submitted your number for this round</h5>}
+				<h3 className="font-semibold text-xl mb-2">{endingGame ? 'The game is ending, please wait...' : 'Pick a number from 1-9'}</h3>
+
+				{!inGame ? <input type="number" max={9} min={1} ref={inputRef} className="p-5 w-3xl bg-white" /> : <h5 className="text-lg font-bold">{endingGame && `You have selected your number for this round`}</h5>}
 
 				<div className="flex w-3xl gap-2">
-					<button onClick={handleSubmit} className={cn(`bg-black text-white p-4 rounded-sm mt-4 w-full  ${submitting || inGame ? 'opacity-50' : 'cursor-pointer'}`)} disabled={submitting || inGame}>
-						{submitting ? 'Submitting...' : inGame ? 'Number Selected' : 'Submit'}
+					<button onClick={handleSubmit} className={cn(`bg-black text-white p-4 rounded-sm mt-4 w-full  ${submitting || inGame || endingGame ? 'opacity-50' : 'cursor-pointer'}`)} disabled={submitting || inGame || endingGame}>
+						{submitting ? 'Submitting...' : inGame ? `Number Selected (${luckyNumber})` : 'Submit'}
 					</button>
 
 					{inGame && (
-						<button onClick={leaveGame} className={cn(`bg-red-500 text-white p-4 rounded-sm mt-4 w-full  ${leaving ? 'opacity-50' : 'cursor-pointer'}`)} disabled={leaving}>
+						<button onClick={leaveGame} className={cn(`bg-red-500 text-white p-4 rounded-sm mt-4 w-full  ${leaving || endingGame ? 'opacity-50' : 'cursor-pointer'}`)} disabled={leaving || endingGame}>
 							{leaving ? 'Leaving Game...' : 'Leave Game'}
 						</button>
 					)}

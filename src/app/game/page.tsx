@@ -1,15 +1,16 @@
 'use client';
 
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
-import { cn, getCurrentUser, removeCurrentUser } from '@/lib/helpers';
+import { cn, getCurrentUser, handleFetchError, removeCurrentUser, setCurrentUser } from '@/lib/helpers';
 import { logger } from '@/lib/logger';
-import { GameSession, GameSessionsResponse, SessionParticipant, User } from '@/types';
+import { EndGameSessionsResponse, GameSession, GameSessionsResponse, SessionParticipant, User } from '@/types';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import nProgress, { set } from 'nprogress';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import SelectNumber from './SelectNumber';
 import Default from './Default';
+import Results from './Results';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -24,7 +25,10 @@ const Game = () => {
 	const [count, setCount] = useState<number | null>(null);
 	const [participant, setParticipant] = useState<SessionParticipant | null>(null);
 	const [inGame, setInGame] = useState<boolean>(false);
+	const [gameEnded, setGameEnded] = useState<boolean>(false);
+	const [endingGame, setEndingGame] = useState<boolean>(false);
 	const [activeSession, setActiveSession] = useState<boolean>(false);
+	const [endGameResult, setEndGameResult] = useState<EndGameSessionsResponse | null>(null);
 
 	const logoutUser = async () => {
 		try {
@@ -55,6 +59,8 @@ const Game = () => {
 		try {
 			const request = await fetchWithAuth('api/games/active');
 			const response = (await request.json()) as GameSessionsResponse;
+
+			handleFetchError(response, request);
 
 			logger.log('Fetched active games', response);
 			if (request.ok && response.game) {
@@ -93,7 +99,7 @@ const Game = () => {
 			setCountdown((prev) => {
 				if (prev == null) return null;
 				if (prev <= 1) {
-					setActiveSession(false);
+					endGame();
 					if (timer) clearInterval(timer);
 					return 0;
 				}
@@ -108,11 +114,93 @@ const Game = () => {
 
 	useEffect(() => {
 		getActiveGames();
+
+		let channel: any;
+		let reconnectionTimeout: NodeJS.Timeout | null = null;
+
+		logger.log('Supabase realtime debug — URL and anon key present?', {
+			supabaseUrl: !!supabaseUrl,
+			supabaseAnonKey: !!supabaseAnonKey,
+		});
+
+		const subscribe = () => {
+			logger.log('Subscribing to session_participants channel');
+			channel = supabase.channel(`session_participants-channel`);
+
+			channel.on(
+				'postgres_changes',
+				{
+					event: 'INSERT',
+					schema: 'public',
+					table: 'session_participants',
+				},
+				() => {
+					setCount((prev) => (prev != null ? prev + 1 : 1));
+				}
+			);
+
+			channel.on(
+				'postgres_changes',
+				{
+					event: 'DELETE',
+					schema: 'public',
+					table: 'session_participants',
+				},
+				() => {
+					setCount((prev) => (prev != null ? prev - 1 : prev));
+				}
+			);
+
+			try {
+				(channel.subscribe as any)((status: any) => {
+					logger.log('Subscribe status:', status);
+					if (status === 'closed' || (status?.type === 'CHANNEL_STATE' && status?.status === 'closed')) {
+						logger.log('Channel reported closed, scheduling reconnect in 2s');
+						reconnectionTimeout = setTimeout(() => subscribe(), 2000);
+					}
+				});
+			} catch (err) {
+				logger.error('Error while subscribing to channel', err);
+				reconnectionTimeout = setTimeout(() => subscribe(), 2000);
+			}
+		};
+
+		subscribe();
+		return () => {
+			if (channel) channel.unsubscribe();
+			if (reconnectionTimeout) clearTimeout(reconnectionTimeout);
+		};
 	}, []);
 
 	useEffect(() => {
-		handleNewSession(currentSession);
+		const cleanup = handleNewSession(currentSession);
+		return cleanup;
 	}, [currentSession]);
+
+	const endGame = async () => {
+		setEndingGame(true);
+		try {
+			const request = await fetchWithAuth('api/games/end-game', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ game_id: currentSession?.id }),
+			});
+			const response = (await request.json()) as EndGameSessionsResponse;
+
+			handleFetchError(response, request);
+
+			if (request.ok) {
+				if (response.participants) {
+					const updatedParticipant = response.participants.find((p) => p.user?.username === user?.username);
+					setCurrentUser(updatedParticipant?.user as User);
+					setUser(updatedParticipant?.user as User);
+				}
+				setActiveSession(false);
+				setGameEnded(true);
+				setEndGameResult(response);
+			}
+		} catch (err: any) {}
+	};
 
 	return (
 		<div className="flex h-screen w-screen bg-gray-200">
@@ -120,10 +208,12 @@ const Game = () => {
 				<main className="flex-grow flex flex-col justify-center items-center">
 					<h1 className="text-xl font-bold mb-4">Loading...</h1>
 				</main>
-			) : !activeSession ? (
+			) : (!activeSession && !(inGame && gameEnded)) || !participant ? (
 				<Default />
+			) : inGame && gameEnded && endGameResult ? (
+				<Results data={endGameResult} />
 			) : (
-				<SelectNumber countdown={countdown} game={currentSession} inGame={inGame} setInGame={setInGame} count={count} participant={participant} />
+				<SelectNumber countdown={countdown} game={currentSession} inGame={inGame} setInGame={setInGame} count={count} participant={participant} endingGame={endingGame} />
 			)}
 		</div>
 	);

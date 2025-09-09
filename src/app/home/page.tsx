@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
-import { cn, getCurrentUser, removeCurrentUser } from '@/lib/helpers';
+import { cn, getCurrentUser, handleFetchError, removeCurrentUser } from '@/lib/helpers';
 import { logger } from '@/lib/logger';
 import { GameSession, GameSessionsResponse, User } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -59,6 +59,7 @@ const Home = () => {
 			try {
 				const request = await fetchWithAuth('api/games/new-game', { method: 'POST' });
 				const response = (await request.json()) as GameSessionsResponse;
+				handleFetchError(response, request);
 
 				if (request.ok && response.game) {
 					nProgress.start();
@@ -149,13 +150,15 @@ const Home = () => {
 	}, []);
 
 	useEffect(() => {
-		handleNewSession(currentSession);
+		const cleanup = handleNewSession(currentSession);
+		return cleanup;
 	}, [currentSession]);
 
 	const getActiveGames = async () => {
 		try {
 			const request = await fetchWithAuth('api/games/active');
 			const response = (await request.json()) as GameSessionsResponse;
+			handleFetchError(response, request);
 
 			logger.log('Fetched active games', response);
 			if (request.ok && response.game) {
