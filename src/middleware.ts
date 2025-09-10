@@ -102,5 +102,5 @@ async function redirect(authUrl: URL, pathname: string, token: string | undefine
 }
 
 export const config = {
-	matcher: ['/auth/:path*', '/lobby/:path*', '/game/:path*'],
+	matcher: ['/auth', '/lobby', '/game'],
 };
