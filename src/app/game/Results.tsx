@@ -21,7 +21,7 @@ const Results = ({ data, luckyNumber }: { data: EndGameSessionsResponse; luckyNu
 	return (
 		<div className="flex flex-col lg:flex-row h-screen w-screen bg-gray-200">
 			<section className="bg-gray-400 flex-grow flex flex-col justify-center items-center">
-				<h1 className="text-2xl font-semibold text-green-700">Active User's In Session</h1>
+				<h1 className="text-2xl font-semibold text-green-700">Active User&apos;s In Session</h1>
 
 				<div className="space-y-3 mt-10 text-center text-xl">
 					{participants && participants.length === 0 ? (

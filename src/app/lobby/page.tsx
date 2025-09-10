@@ -107,51 +107,51 @@ const Lobby = () => {
 		}
 	};
 
-	// useEffect(() => {
-	// 	let channel: any;
-	// 	let reconnectionTimeout: NodeJS.Timeout | null = null;
+	useEffect(() => {
+		let channel: any;
+		let reconnectionTimeout: NodeJS.Timeout | null = null;
 
-	// 	logger.log('Supabase realtime debug — URL and anon key present?', {
-	// 		supabaseUrl: !!supabaseUrl,
-	// 		supabaseAnonKey: !!supabaseAnonKey,
-	// 	});
+		logger.log('Supabase realtime debug — URL and anon key present?', {
+			supabaseUrl: !!supabaseUrl,
+			supabaseAnonKey: !!supabaseAnonKey,
+		});
 
-	// 	const subscribe = () => {
-	// 		logger.log('Subscribing to game_sessions channel');
-	// 		channel = supabase.channel(`games-session`);
+		const subscribe = () => {
+			logger.log('Subscribing to game_sessions channel');
+			channel = supabase.channel(`games-session`);
 
-	// 		channel.on(
-	// 			'postgres_changes',
-	// 			{
-	// 				event: 'INSERT',
-	// 				schema: 'public',
-	// 				table: 'game_sessions',
-	// 			},
-	// 			(payload: { new: GameSession }) => {
-	// 				setCurrentSession(payload.new);
-	// 			}
-	// 		);
+			channel.on(
+				'postgres_changes',
+				{
+					event: 'INSERT',
+					schema: 'public',
+					table: 'game_sessions',
+				},
+				(payload: { new: GameSession }) => {
+					setCurrentSession(payload.new);
+				}
+			);
 
-	// 		try {
-	// 			(channel.subscribe as any)((status: any) => {
-	// 				logger.log('Subscribe status:', status);
-	// 				if (status === 'closed' || (status?.type === 'CHANNEL_STATE' && status?.status === 'closed')) {
-	// 					logger.log('Channel reported closed, scheduling reconnect in 2s');
-	// 					reconnectionTimeout = setTimeout(() => subscribe(), 2000);
-	// 				}
-	// 			});
-	// 		} catch (err) {
-	// 			logger.error('Error while subscribing to channel', err);
-	// 			reconnectionTimeout = setTimeout(() => subscribe(), 2000);
-	// 		}
-	// 	};
+			try {
+				(channel.subscribe as any)((status: any) => {
+					logger.log('Subscribe status:', status);
+					if (status === 'closed' || (status?.type === 'CHANNEL_STATE' && status?.status === 'closed')) {
+						logger.log('Channel reported closed, scheduling reconnect in 2s');
+						reconnectionTimeout = setTimeout(() => subscribe(), 2000);
+					}
+				});
+			} catch (err) {
+				logger.error('Error while subscribing to channel', err);
+				reconnectionTimeout = setTimeout(() => subscribe(), 2000);
+			}
+		};
 
-	// 	subscribe();
-	// 	return () => {
-	// 		if (channel) channel.unsubscribe();
-	// 		if (reconnectionTimeout) clearTimeout(reconnectionTimeout);
-	// 	};
-	// }, []);
+		subscribe();
+		return () => {
+			if (channel) channel.unsubscribe();
+			if (reconnectionTimeout) clearTimeout(reconnectionTimeout);
+		};
+	}, []);
 
 	useEffect(() => {
 		const cleanup = handleNewSession(currentSession);
