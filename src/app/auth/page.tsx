@@ -4,7 +4,7 @@ import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { setCurrentUser, validateLoginInput } from '@/lib/helpers';
 import { logger } from '@/lib/logger';
 import { LoginResponse } from '@/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import nProgress from 'nprogress';
 import { useRef, useState } from 'react';
 
@@ -12,7 +12,9 @@ const Auth = () => {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState('');
+
 	const router = useRouter();
+	const searchParams = useSearchParams();
 
 	const login = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -35,9 +37,16 @@ const Auth = () => {
 				const data = (await response.json()) as LoginResponse;
 
 				if (response.ok && data.user) {
+					const redirectTo = searchParams.get('redirect_to');
+					logger.log(`Redirect to param: ${redirectTo}`);
+					let destination = '/lobby';
+
+					logger.log(`Login successful for user: ${data.user.username}`);
+					if (redirectTo && redirectTo.startsWith('/')) destination = redirectTo;
+
 					nProgress.start();
 					setCurrentUser(data.user);
-					router.replace('/lobby');
+					router.replace(destination);
 				} else {
 					setError(data.error || 'Login failed');
 					logger.error(`Login failed: ${data.error || 'Unknown error'}`);
