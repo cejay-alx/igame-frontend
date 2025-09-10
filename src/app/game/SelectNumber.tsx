@@ -14,15 +14,16 @@ interface SelectNumberProps {
 	participant?: SessionParticipant | null;
 	game?: GameSession | null;
 	endingGame: boolean;
+	luckyNumber: number | null;
+	setLuckyNumber: (num: number | null) => void;
 }
 
-const SelectNumber = ({ countdown, setInGame, inGame, count, participant, game, endingGame }: SelectNumberProps) => {
+const SelectNumber = ({ countdown, setInGame, inGame, count, participant, game, endingGame, luckyNumber, setLuckyNumber }: SelectNumberProps) => {
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
 	const [submitting, setSubmitting] = useState(false);
 	const [leaving, setLeaving] = useState(false);
-	const [luckyNumber, setLuckyNumber] = useState<number | null>(null);
 
 	const router = useRouter();
 
@@ -82,7 +83,7 @@ const SelectNumber = ({ countdown, setInGame, inGame, count, participant, game, 
 				setLeaving(false);
 			} else {
 				setSuccess('You left the game successfully.');
-				router.push('/home');
+				router.push('/lobby');
 			}
 		} catch (error: any) {
 			setError(error.message || 'Failed to leave game');

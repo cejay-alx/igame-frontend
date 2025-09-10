@@ -8,18 +8,15 @@ const Default = () => {
 		<main className="flex-grow flex flex-col justify-center items-center">
 			<h1 className="text-xl font-bold mb-4">No Active Session</h1>
 			<div className="flex flex-col gap-4 mt-8 items-center">
-				<button className={cn(`cursor-pointer text-white bg-black p-5 px-20 `)} onClick={() => {}}>
-					Start New Session
-				</button>
-				<span
+				<button
 					onClick={() => {
 						nProgress.start();
-						router.push('/home');
+						router.push('/lobby');
 					}}
-					className="cursor-pointer"
+					className={cn(`cursor-pointer text-white bg-black p-5 px-20 `)}
 				>
-					{'<	Go Back'}
-				</span>
+					Back To Lobby
+				</button>
 			</div>
 		</main>
 	);

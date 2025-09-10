@@ -37,7 +37,7 @@ const Auth = () => {
 				if (response.ok && data.user) {
 					nProgress.start();
 					setCurrentUser(data.user);
-					router.replace('/home');
+					router.replace('/lobby');
 				} else {
 					setError(data.error || 'Login failed');
 					logger.error(`Login failed: ${data.error || 'Unknown error'}`);

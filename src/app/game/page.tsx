@@ -29,6 +29,7 @@ const Game = () => {
 	const [endingGame, setEndingGame] = useState<boolean>(false);
 	const [activeSession, setActiveSession] = useState<boolean>(false);
 	const [endGameResult, setEndGameResult] = useState<EndGameSessionsResponse | null>(null);
+	const [luckyNumber, setLuckyNumber] = useState<number | null>(null);
 
 	const logoutUser = async () => {
 		try {
@@ -211,9 +212,9 @@ const Game = () => {
 			) : (!activeSession && !(inGame && gameEnded)) || !participant ? (
 				<Default />
 			) : inGame && gameEnded && endGameResult ? (
-				<Results data={endGameResult} />
+				<Results data={endGameResult} luckyNumber={luckyNumber} />
 			) : (
-				<SelectNumber countdown={countdown} game={currentSession} inGame={inGame} setInGame={setInGame} count={count} participant={participant} endingGame={endingGame} />
+				<SelectNumber countdown={countdown} game={currentSession} inGame={inGame} setInGame={setInGame} count={count} participant={participant} endingGame={endingGame} luckyNumber={luckyNumber} setLuckyNumber={setLuckyNumber} />
 			)}
 		</div>
 	);

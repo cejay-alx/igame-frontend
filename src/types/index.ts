@@ -52,3 +52,15 @@ export interface SessionParticipant {
 		username?: string;
 	} | null;
 }
+
+export interface Leaderboard {
+	id: any;
+	username: any;
+	total_wins: any;
+	total_losses: any;
+}
+
+export interface LeaderboardResponse {
+	players?: Leaderboard[] | null;
+	error?: string | null;
+}

@@ -13,14 +13,14 @@ export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 	const authToken = request.cookies.get('igame_access_token')?.value;
 
-	const homeUrl = new URL('/home', request.url);
+	const lobbyUrl = new URL('/lobby', request.url);
 	const authUrl = new URL('/auth', request.url);
 
-	const isHomePath = pathname.startsWith('/home');
+	const isLobbyPath = pathname.startsWith('/lobby');
 	const isGamePath = pathname.startsWith('/game');
 	const isAuthPath = pathname.startsWith('/auth');
 
-	if (isHomePath || isGamePath) {
+	if (isLobbyPath || isGamePath) {
 		if (!authToken) return redirect(authUrl, pathname, authToken);
 
 		const { user, error } = await verifyUser(authToken);
@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
 			if (targetPath) {
 				return NextResponse.redirect(new URL(targetPath, request.nextUrl.origin));
 			} else {
-				return NextResponse.redirect(new URL(homeUrl, request.nextUrl.origin));
+				return NextResponse.redirect(new URL(lobbyUrl, request.nextUrl.origin));
 			}
 		}
 
@@ -102,5 +102,5 @@ async function redirect(authUrl: URL, pathname: string, token: string | undefine
 }
 
 export const config = {
-	matcher: ['/auth/:path*', '/home/:path*', '/game/:path*'],
+	matcher: ['/auth/:path*', '/lobby/:path*', '/game/:path*'],
 };

@@ -1,22 +1,22 @@
 'use client';
 
-import { cn } from '@/lib/helpers';
+import { cn, getCurrentUser } from '@/lib/helpers';
 import { EndGameSessionsResponse } from '@/types';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import nProgress from 'nprogress';
+import React from 'react';
 
-const Results = ({ data }: { data: EndGameSessionsResponse }) => {
-	const [success, setSuccess] = useState('');
-	const [startingSession, setStartingSession] = useState(false);
-	const [joiningSession, setJoiningSession] = useState<boolean>(false);
-	const [activeSession, setActiveSession] = useState<boolean>(false);
+const Results = ({ data, luckyNumber }: { data: EndGameSessionsResponse; luckyNumber: number | null }) => {
+	const currentUser = getCurrentUser();
+	const { participants, game } = data;
 
-	const { participants, game, error } = data;
+	const currentParticipant = participants?.find((p) => p.user?.username === currentUser?.username) || null;
 
-	useEffect(() => {
-		if (!error) {
-			setSuccess('Game ended successfully');
-		}
-	}, []);
+	const success = currentParticipant && game?.winning_number === luckyNumber ? 'Congratulations! You are one of the winners!' : null;
+
+	const error = currentParticipant && game?.winning_number !== luckyNumber ? 'Sorry, you did not win this round. Better luck next time!' : null;
+
+	const router = useRouter();
 
 	return (
 		<div className="flex flex-col lg:flex-row h-screen w-screen bg-gray-200">
@@ -27,7 +27,7 @@ const Results = ({ data }: { data: EndGameSessionsResponse }) => {
 					{participants && participants.length === 0 ? (
 						<p className="mt-4">No participants in this game.</p>
 					) : (
-						participants?.map((participant, i) => {
+						participants?.map((participant: any, i: number) => {
 							if (participant.is_starter)
 								return (
 									<div key={i} className="flex items-center justify-center space-x-2">
@@ -66,8 +66,15 @@ const Results = ({ data }: { data: EndGameSessionsResponse }) => {
 				</div>
 
 				<div className="flex flex-col gap-4 mt-8 items-center">
-					<button type="button" className={cn(`cursor-pointer text-white bg-black p-5 px-20`)}>
-						{activeSession ? (joiningSession ? 'Joining...' : 'Join') : startingSession ? 'Starting New Session...' : 'Start Session'}
+					<button
+						type="button"
+						className={cn(`cursor-pointer text-white bg-black p-5 px-20`)}
+						onClick={() => {
+							nProgress.start();
+							router.push('/lobby');
+						}}
+					>
+						Back To Lobby
 					</button>
 				</div>
 			</section>

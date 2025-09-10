@@ -2,27 +2,40 @@
 
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { cn, handleFetchError } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
+import { Leaderboard, LeaderboardResponse } from '@/types';
 import { useRouter } from 'next/navigation';
 import nProgress from 'nprogress';
 import { useEffect, useState } from 'react';
 
 export default function Home() {
-	const [activeTab, setActiveTab] = useState('All Time');
+	const [activeTab, setActiveTab] = useState('all-time');
 	const [loadingLeaderBoard, setLoadingLeaderBoard] = useState(true);
-	const [leaderBoard, seLeaderBoard] = useState([]);
+	const [leaderBoard, setLeaderBoard] = useState<Leaderboard[]>([]);
+	const [error, setError] = useState('');
 
 	const router = useRouter();
 
 	const fetchLeaderBoard = async (timeframe: string) => {
 		setLoadingLeaderBoard(true);
+		setLeaderBoard([]);
+		setError('');
+		try {
+			const request = await fetchWithAuth(`/api/games/leaderboard/${timeframe}`);
 
-		const request = await fetchWithAuth(`/api/game/leaderboard?timeframe=${encodeURIComponent(timeframe)}`);
+			const response = (await request.json()) as LeaderboardResponse;
+			handleFetchError(response, request);
 
-		const response = await request.json();
-		handleFetchError(response, request);
-
-		if (request.ok) {
-			// Process and set leaderboard data here
+			if (request.ok && response.players) {
+				setLeaderBoard(response.players);
+			} else {
+				setError(response.error || 'Failed to fetch leaderboard');
+			}
+		} catch (err: any) {
+			logger.error('Error fetching leaderboard', err);
+			setError(err.message || 'An error occurred while fetching the leaderboard.');
+		} finally {
+			setLoadingLeaderBoard(false);
 		}
 	};
 
@@ -36,7 +49,7 @@ export default function Home() {
 				<button
 					onClick={() => {
 						nProgress.start();
-						router.push('/home');
+						router.push('/lobby');
 					}}
 					className={cn(`hover:bg-blue-600 bg-blue-400 text-white px-4 py-2 rounded cursor-pointer `)}
 				>
@@ -50,42 +63,54 @@ export default function Home() {
 					<span className="text-2xl">compete and win</span>
 				</div>
 
-				{!loadingLeaderBoard ? (
-					<div className="mt-10 text-center bg-white p-10 rounded-lg shadow-md w-full">
-						<div>
-							<h3 className="text-3xl font-semibold">Leaderboard</h3>
-							<span>Top players by number of wins</span>
+				<div className="mt-10 text-center bg-white p-10 rounded-lg shadow-md w-full">
+					{error && (
+						<div className="p-2 bg-red-400 text-white rounded-sm mb-4">
+							<p>{error}</p>
 						</div>
+					)}
 
-						<div className="flex flex-col items-center">
-							<ul className="flex justify-center gap-2 mt-6 font-semibold text-md  w-fit bg-gray-400 rounded-lg overflow-clip p-1">
-								<li className={`tab-style ${activeTab == 'All Time' && 'active-tab'}`} onClick={() => setActiveTab('All Time')}>
-									All Time
-								</li>
-								<li className={`tab-style ${activeTab == 'Today' && 'active-tab'}`} onClick={() => setActiveTab('Today')}>
-									Today
-								</li>
-								<li className={`tab-style ${activeTab == 'This Week' && 'active-tab'}`} onClick={() => setActiveTab('This Week')}>
-									This Week
-								</li>
-								<li className={`tab-style ${activeTab == 'This Month' && 'active-tab'}`} onClick={() => setActiveTab('This Month')}>
-									This Month
-								</li>
-							</ul>
-						</div>
+					<div>
+						<h3 className="text-3xl font-semibold">Leaderboard</h3>
+						<span>Top players by number of wins</span>
+					</div>
 
-						<ul className="mt-6 space-y-2 font-semibold text-lg">
-							<li>1. user1 - 10 wins</li>
-							<li>2. user2 - 8 wins</li>
-							<li>3. user3 - 5 wins</li>
+					<div className="flex flex-col items-center">
+						<ul className="flex justify-center gap-2 mt-6 font-semibold text-md  w-fit bg-gray-400 rounded-lg overflow-clip p-1">
+							<li className={`tab-style ${activeTab == 'all-time' && 'active-tab'}`} onClick={() => setActiveTab('all-time')}>
+								All Time
+							</li>
+							<li className={`tab-style ${activeTab == 'today' && 'active-tab'}`} onClick={() => setActiveTab('today')}>
+								Today
+							</li>
+							<li className={`tab-style ${activeTab == 'weekly' && 'active-tab'}`} onClick={() => setActiveTab('weekly')}>
+								This Week
+							</li>
+							<li className={`tab-style ${activeTab == 'monthly' && 'active-tab'}`} onClick={() => setActiveTab('monthly')}>
+								This Month
+							</li>
 						</ul>
 					</div>
-				) : (
-					<div className="mt-10 flex flex-col items-center gap-2">
-						<span className="loader"></span>
-						<span className="text-xl">Loading Leaderboard Data...</span>
-					</div>
-				)}
+
+					{!loadingLeaderBoard ? (
+						<ul className="mt-6 space-y-2 font-semibold text-lg">
+							{leaderBoard.length > 0 ? (
+								leaderBoard.map(({ username, total_wins }, i) => (
+									<li key={i}>
+										{i + 1}. {username} - {total_wins} wins
+									</li>
+								))
+							) : (
+								<li>No data available</li>
+							)}
+						</ul>
+					) : (
+						<div className="mt-10 flex flex-col items-center gap-2">
+							<span className="loader"></span>
+							<span className="text-base">Loading data...</span>
+						</div>
+					)}
+				</div>
 			</div>
 		</div>
 	);

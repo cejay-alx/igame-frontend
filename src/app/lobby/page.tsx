@@ -6,14 +6,14 @@ import { cn, getCurrentUser, handleFetchError, removeCurrentUser } from '@/lib/h
 import { logger } from '@/lib/logger';
 import { GameSession, GameSessionsResponse, User } from '@/types';
 import { useRouter } from 'next/navigation';
-import nProgress from 'nprogress';
+import nProgress, { set } from 'nprogress';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const Home = () => {
+const Lobby = () => {
 	const router = useRouter();
 	const [user, setUser] = useState<User | null>(null);
 	const [loggingOut, setLoggingOut] = useState(false);
@@ -68,6 +68,10 @@ const Home = () => {
 					logger.error('Failed to start new game session', response);
 					setError(response.error || 'Failed to start new game session');
 					setStartingSession(false);
+					if (response.game) {
+						setCurrentSession(response.game);
+						setActiveSession(true);
+					}
 				}
 			} catch (err) {
 				logger.error('Error while starting new game session', err);
@@ -103,51 +107,51 @@ const Home = () => {
 		}
 	};
 
-	useEffect(() => {
-		let channel: any;
-		let reconnectionTimeout: NodeJS.Timeout | null = null;
+	// useEffect(() => {
+	// 	let channel: any;
+	// 	let reconnectionTimeout: NodeJS.Timeout | null = null;
 
-		logger.log('Supabase realtime debug — URL and anon key present?', {
-			supabaseUrl: !!supabaseUrl,
-			supabaseAnonKey: !!supabaseAnonKey,
-		});
+	// 	logger.log('Supabase realtime debug — URL and anon key present?', {
+	// 		supabaseUrl: !!supabaseUrl,
+	// 		supabaseAnonKey: !!supabaseAnonKey,
+	// 	});
 
-		const subscribe = () => {
-			logger.log('Subscribing to game_sessions channel');
-			channel = supabase.channel(`games-session`);
+	// 	const subscribe = () => {
+	// 		logger.log('Subscribing to game_sessions channel');
+	// 		channel = supabase.channel(`games-session`);
 
-			channel.on(
-				'postgres_changes',
-				{
-					event: 'INSERT',
-					schema: 'public',
-					table: 'game_sessions',
-				},
-				(payload: { new: GameSession }) => {
-					setCurrentSession(payload.new);
-				}
-			);
+	// 		channel.on(
+	// 			'postgres_changes',
+	// 			{
+	// 				event: 'INSERT',
+	// 				schema: 'public',
+	// 				table: 'game_sessions',
+	// 			},
+	// 			(payload: { new: GameSession }) => {
+	// 				setCurrentSession(payload.new);
+	// 			}
+	// 		);
 
-			try {
-				(channel.subscribe as any)((status: any) => {
-					logger.log('Subscribe status:', status);
-					if (status === 'closed' || (status?.type === 'CHANNEL_STATE' && status?.status === 'closed')) {
-						logger.log('Channel reported closed, scheduling reconnect in 2s');
-						reconnectionTimeout = setTimeout(() => subscribe(), 2000);
-					}
-				});
-			} catch (err) {
-				logger.error('Error while subscribing to channel', err);
-				reconnectionTimeout = setTimeout(() => subscribe(), 2000);
-			}
-		};
+	// 		try {
+	// 			(channel.subscribe as any)((status: any) => {
+	// 				logger.log('Subscribe status:', status);
+	// 				if (status === 'closed' || (status?.type === 'CHANNEL_STATE' && status?.status === 'closed')) {
+	// 					logger.log('Channel reported closed, scheduling reconnect in 2s');
+	// 					reconnectionTimeout = setTimeout(() => subscribe(), 2000);
+	// 				}
+	// 			});
+	// 		} catch (err) {
+	// 			logger.error('Error while subscribing to channel', err);
+	// 			reconnectionTimeout = setTimeout(() => subscribe(), 2000);
+	// 		}
+	// 	};
 
-		subscribe();
-		return () => {
-			if (channel) channel.unsubscribe();
-			if (reconnectionTimeout) clearTimeout(reconnectionTimeout);
-		};
-	}, []);
+	// 	subscribe();
+	// 	return () => {
+	// 		if (channel) channel.unsubscribe();
+	// 		if (reconnectionTimeout) clearTimeout(reconnectionTimeout);
+	// 	};
+	// }, []);
 
 	useEffect(() => {
 		const cleanup = handleNewSession(currentSession);
@@ -251,4 +255,4 @@ const Home = () => {
 	);
 };
 
-export default Home;
+export default Lobby;
