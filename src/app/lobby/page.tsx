@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { cn, getCurrentUser, handleFetchError, removeCurrentUser } from '@/lib/helpers';
 import { logger } from '@/lib/logger';
@@ -25,11 +25,11 @@ const Lobby = () => {
 	const [countdown, setCountdown] = useState<number | null>(null);
 	const [error, setError] = useState('');
 
-	useLayoutEffect(() => {
+	useEffect(() => {
 		const currentUser = getCurrentUser();
 		if (!currentUser) {
+			logger.error('No current user found, redirecting to auth');
 			logoutUser();
-			router.push('/auth');
 		} else {
 			setUser(currentUser);
 		}
