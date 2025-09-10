@@ -20,6 +20,7 @@ const Auth = () => {
 		e.preventDefault();
 		setSubmitting(true);
 		setError('');
+
 		try {
 			logger.log(`Submitting login form`);
 			const username = inputRef.current?.value ?? '';
@@ -46,7 +47,7 @@ const Auth = () => {
 
 					nProgress.start();
 					setCurrentUser(data.user);
-					router.replace(destination);
+					router.refresh();
 				} else {
 					setError(data.error || 'Login failed');
 					logger.error(`Login failed: ${data.error || 'Unknown error'}`);
