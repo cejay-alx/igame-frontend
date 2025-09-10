@@ -11,7 +11,7 @@ interface VerifyResult {
 
 export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
-	const authToken = request.cookies.get('igame_access_token')?.value;
+	const authToken = request.cookies.get('igame_access_token_live')?.value;
 
 	const lobbyUrl = new URL('/lobby', request.url);
 	const authUrl = new URL('/auth', request.url);
@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
 			}
 		}
 
-		return NextResponse.next().cookies.delete('igame_access_token');
+		return NextResponse.next().cookies.delete('igame_access_token_live');
 	}
 
 	return NextResponse.next();
@@ -74,7 +74,7 @@ async function verifyUser(token: string): Promise<VerifyResult> {
 	}
 
 	const headers = new Headers();
-	headers.append('Cookie', `igame_access_token=${token}`);
+	headers.append('Cookie', `igame_access_token_live=${token}`);
 
 	try {
 		const request = await fetchWithAuth(`${apiUrl}/auth/verify`, {
@@ -97,7 +97,7 @@ async function verifyUser(token: string): Promise<VerifyResult> {
 async function redirect(authUrl: URL, pathname: string, token: string | undefined) {
 	authUrl.searchParams.set('redirect_to', pathname);
 	const redirect = NextResponse.redirect(authUrl);
-	if (token) redirect.cookies.delete('igame_access_token');
+	if (token) redirect.cookies.delete('igame_access_token_live');
 	return redirect;
 }
 

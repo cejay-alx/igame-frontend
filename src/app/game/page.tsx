@@ -46,11 +46,10 @@ const Game = () => {
 		}
 	};
 
-	useLayoutEffect(() => {
+	useEffect(() => {
 		const currentUser = getCurrentUser();
 		if (!currentUser) {
 			logoutUser();
-			router.push('/auth');
 		} else {
 			setUser(currentUser);
 		}
